@@ -1,6 +1,6 @@
 import { GraphQLServer } from 'graphql-yoga';
 import { IResolvers } from 'graphql-tools/dist/Interfaces';
-import { User, Post } from './types';
+import { User, Post, Comment } from './types';
 
 // Demo data
 const users: User[] = [
@@ -13,10 +13,18 @@ const posts: Post[] = [
   { id: '34849qp', title: 'second post', body: 'full second post', published: true, author: '2' },
   { id: '948219peux', title: 'third post', body: 'full third post', published: true, author: '1' },
 ];
+const comments: Comment[] = [
+  { id: 'asdfsd', text: 'somy dummy text for comment one', author: '1', post: 'asdaf12342' },
+  { id: '22323grrr', text: 'somy dummy text for comment two', author: '2', post: '34849qp' },
+  { id: '878334hjuik', text: 'somy dummy text for comment three', author: '3', post: '948219peux' },
+  { id: '23456awww', text: 'somy dummy text for comment four', author: '1', post: 'asdaf12342' },
+];
+
 const typeDefs = `
   type Query {
     posts(query:String):[Post!]!
     users(query:String): [User!]!
+    comments(query:String): [Comment!]!
     me:User!
     post:Post!
   }
@@ -25,6 +33,8 @@ const typeDefs = `
      name: String!
      email:String!
      age:Int
+     posts:[Post]!
+     comments:[Comment!]!
   }
   type Post {
     id:ID!
@@ -32,6 +42,13 @@ const typeDefs = `
     body:String!
     published:Boolean!
     author: User!
+    comments: [Comment!]!
+  }
+  type Comment {
+    id:ID!
+    text:String!
+    author:User!
+    post:Post!
   }
 `;
 
@@ -60,9 +77,32 @@ const resolvers: IResolvers = {
       published: true,
       author: '2',
     }),
+    comments: (_: undefined, { query }: { query: string | undefined }): Comment[] => {
+      if (!query) {
+        return comments;
+      }
+      const matchById = comments.filter((comm) => comm.id.toLowerCase() === query.toLowerCase());
+      const matchByText = comments.filter((comm) =>
+        comm.text.toLowerCase().includes(query.toLowerCase()),
+      );
+      return [...matchById, ...matchByText];
+    },
   },
   Post: {
     author: ({ author }: Post): User => users.find((user) => user.id === author) as User,
+    comments: ({ id }: Post): Comment[] => comments.filter((comm) => comm.post === id),
+  },
+  User: {
+    posts: ({ id }: User): Post[] => posts.filter((post) => post.author === id),
+    comments: ({ id }: User): Comment[] => comments.filter((comm) => comm.author === id),
+  },
+  Comment: {
+    author: ({ author }: Comment): User => {
+      return users.find((user) => user.id === author) as User;
+    },
+    post: ({ post }: Comment): Post => {
+      return posts.find((p) => p.id === post) as Post;
+    },
   },
 };
 

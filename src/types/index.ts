@@ -11,6 +11,12 @@ export interface Post {
   published: boolean;
   author: string;
 }
+export interface Comment {
+  id: string;
+  text: string;
+  author: string;
+  post:string;
+}
 export interface QueryType {
   Query: {
     me: () => User;
