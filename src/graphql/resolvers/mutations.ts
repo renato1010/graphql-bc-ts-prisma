@@ -1,5 +1,6 @@
 import { User, Post, Comment } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { PubSub } from 'graphql-subscriptions';
 
 const Mutation = {
   Mutation: {
@@ -69,7 +70,10 @@ const Mutation = {
       {
         input: { title, body, publish: published, authorId },
       }: { input: { title: string; body: string; publish: boolean; authorId: string } },
-      { data: { users, posts } }: { data: { users: User[]; posts: Post[] } },
+      {
+        data: { users, posts },
+        pubsub,
+      }: { data: { users: User[]; posts: Post[] }; pubsub: PubSub },
     ): Post => {
       const authorExist = users.find((u) => u.id === authorId);
       if (!authorExist) {
@@ -77,12 +81,18 @@ const Mutation = {
       }
       const newPost = { title, body, published, id: uuidv4(), author: authorId };
       posts = [...posts, newPost];
+      if (published) {
+        pubsub.publish('post', { post: { mutation: 'Created', data: newPost } });
+      }
       return newPost;
     },
     deletePost: (
       _parent: undefined,
       { postId }: { postId: string },
-      { data: { comments, posts } }: { data: { comments: Comment[]; posts: Post[] } },
+      {
+        data: { comments, posts },
+        pubsub,
+      }: { data: { comments: Comment[]; posts: Post[] }; pubsub: PubSub },
     ): Post => {
       const postToRemove = posts.find((p) => p.id === postId);
       if (!postToRemove) {
@@ -91,6 +101,9 @@ const Mutation = {
       // remove all comments belonging to postToRemove
       comments = comments.filter((c) => c.post !== postToRemove.id);
       posts = posts.filter((p) => p.id !== postId);
+      if (postToRemove.published) {
+        pubsub.publish('post', { post: { mutation: 'DELETED', data: postToRemove } });
+      }
       return postToRemove;
     },
     updatePost: (
@@ -99,14 +112,15 @@ const Mutation = {
         postId,
         input,
       }: { postId: string; input: Partial<Omit<Post, 'id' | 'author' | 'published'>> },
-      { data: { posts } }: { data: { posts: Post[] } },
+      { data: { posts }, pubsub }: { data: { posts: Post[] }; pubsub: PubSub },
     ): Post => {
       const selectedPostIndex = posts.findIndex((p) => p.id === postId);
       if (selectedPostIndex < 0) {
         throw new Error(`Couldn't find post with Id=${postId}`);
       }
       const updatedPost: Post = { ...posts[selectedPostIndex], ...input };
-      const originalPost = posts.splice(selectedPostIndex, 1, updatedPost);
+      const [originalPost] = posts.splice(selectedPostIndex, 1, updatedPost);
+      pubsub.publish('post', { post: { mutation: 'UPDATED', data: updatedPost } });
       return updatedPost;
     },
     createComment: (
@@ -116,7 +130,8 @@ const Mutation = {
       }: { input: { content: string; author: string; post: string } },
       {
         data: { comments, posts, users },
-      }: { data: { comments: Comment[]; posts: Post[]; users: User[] } },
+        pubsub,
+      }: { data: { comments: Comment[]; posts: Post[]; users: User[] }; pubsub: PubSub },
     ): Comment => {
       const newComment: Comment = { id: uuidv4(), text, author, post };
       const isAuthor = users.find((u) => u.id === author);
@@ -125,12 +140,13 @@ const Mutation = {
         throw new Error('There are neither author nor post');
       }
       comments = [...comments, newComment];
+      pubsub.publish('comment', { comment: { mutation: 'CREATED', data: newComment } });
       return newComment;
     },
     updateComment: (
       _parent: undefined,
       { commentId, input }: { commentId: string; input: Pick<Comment, 'text'> },
-      { data: { comments } }: { data: { comments: Comment[] } },
+      { data: { comments }, pubsub }: { data: { comments: Comment[] }; pubsub: PubSub },
     ): Comment => {
       const selectedCommentIndex = comments.findIndex((p) => p.id === commentId);
       if (selectedCommentIndex < 0) {
@@ -138,18 +154,20 @@ const Mutation = {
       }
       const updatedComment: Comment = { ...comments[selectedCommentIndex], ...input };
       const originalPost = comments.splice(selectedCommentIndex, 1, updatedComment);
+      pubsub.publish('comment', { comment: { mutation: 'UPDATED', data: updatedComment } });
       return updatedComment;
     },
     deleteComment: (
       _parent: undefined,
       { commentId }: { commentId: string },
-      { data: { comments } }: { data: { comments: Comment[] } },
+      { data: { comments }, pubsub }: { data: { comments: Comment[] }; pubsub: PubSub },
     ): Comment => {
       const commentToRemove = comments.find((c) => c.id === commentId);
       if (!commentToRemove) {
         throw new Error(`Couldn't find comment with Id=${commentId}`);
       }
       comments = comments.filter((c) => c.id !== commentId);
+      pubsub.publish('comment', { comment: { mutation: 'DELETED', data: commentToRemove } });
       return commentToRemove;
     },
   },
