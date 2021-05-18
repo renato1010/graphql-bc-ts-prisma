@@ -1,3 +1,5 @@
+import { Prisma, PrismaClient } from '@prisma/client';
+
 export interface User {
   id: string;
   name: string;
@@ -9,7 +11,7 @@ export interface Post {
   title: string;
   body: string;
   published: boolean;
-  author: string;
+  userId: string;
 }
 export interface Comment {
   id: string;
@@ -24,3 +26,9 @@ export interface QueryType {
     post: () => Post;
   };
 }
+
+export type PrismaFull = PrismaClient<
+  Prisma.PrismaClientOptions,
+  never,
+  Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
+>;

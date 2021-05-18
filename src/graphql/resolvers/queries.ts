@@ -1,24 +1,19 @@
-import { Prisma, PrismaClient } from '@prisma/client';
 import { User, Post, Comment } from '../../types';
-
-type PrismaFull = PrismaClient<
-  Prisma.PrismaClientOptions,
-  never,
-  Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
->;
+import { PrismaFull } from 'src/types';
 
 const Query = {
   Query: {
-    // posts: (
-    //   _: undefined,
-    //   { query }: { query: string | undefined },
-    //   { data: { posts } }: { data: { posts: Post[] } },
-    // ): Post[] => {
-    //   if (!query) {
-    //     return posts;
-    //   }
-    //   return posts.filter((post) => post.title.toLowerCase().includes(query.toLowerCase()));
-    // },
+    posts: async (
+      _: undefined,
+      { query }: { query: string | undefined },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Post[] | []> => {
+      if (!query) {
+        return await prisma.post.findMany();
+      }
+      const post = await prisma.post.findUnique({ where: { id: query } });
+      return post ? [post] : [];
+    },
     users: async (
       _parent: undefined,
       { query }: { query: string | undefined },
