@@ -78,47 +78,51 @@ const Mutation = {
       });
       return updateUser;
     },
-    // createPost: (
-    //   _parent: undefined,
-    //   {
-    //     input: { title, body, publish: published, authorId },
-    //   }: { input: { title: string; body: string; publish: boolean; authorId: string } },
-    //   {
-    //     data: { users, posts },
-    //     pubsub,
-    //   }: { data: { users: User[]; posts: Post[] }; pubsub: PubSub },
-    // ): Post => {
-    //   const authorExist = users.find((u) => u.id === authorId);
-    //   if (!authorExist) {
-    //     throw new Error(`Couldn't found an author with ID=${authorId}`);
-    //   }
-    //   const newPost = { title, body, published, id: uuidv4(), author: authorId };
-    //   posts = [...posts, newPost];
-    //   if (published) {
-    //     pubsub.publish('post', { post: { mutation: 'Created', data: newPost } });
-    //   }
-    //   return newPost;
-    // },
-    // deletePost: (
-    //   _parent: undefined,
-    //   { postId }: { postId: string },
-    //   {
-    //     data: { comments, posts },
-    //     pubsub,
-    //   }: { data: { comments: Comment[]; posts: Post[] }; pubsub: PubSub },
-    // ): Post => {
-    //   const postToRemove = posts.find((p) => p.id === postId);
-    //   if (!postToRemove) {
-    //     throw new Error(`Couldn't find the post with ID=${postId}`);
-    //   }
-    //   // remove all comments belonging to postToRemove
-    //   comments = comments.filter((c) => c.post !== postToRemove.id);
-    //   posts = posts.filter((p) => p.id !== postId);
-    //   if (postToRemove.published) {
-    //     pubsub.publish('post', { post: { mutation: 'DELETED', data: postToRemove } });
-    //   }
-    //   return postToRemove;
-    // },
+    createPost: async (
+      _parent: undefined,
+      {
+        input: { title, body, publish: published, authorId },
+      }: { input: { title: string; body: string; publish: boolean; authorId: string } },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Post> => {
+      const authorExist = await prisma.user.findUnique({ where: { id: authorId } });
+      if (!authorExist) {
+        throw new Error(`Couldn't found an author with ID=${authorId}`);
+      }
+      const newPost = await prisma.post.create({
+        data: { body, title, published, userId: authorId },
+      });
+      // if (published) {
+      //   pubsub.publish('post', { post: { mutation: 'Created', data: newPost } });
+      // }
+      return newPost;
+    },
+    deletePost: async (
+      _parent: undefined,
+      { postId }: { postId: string },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Post> => {
+      const targetPost = await prisma.post.findUnique({ where: { id: postId } });
+      if (!targetPost) {
+        throw new Error(`Couldn't find the post with ID=${postId}`);
+      }
+      try {
+        // delete comments related with post
+        const delPostRelComms = prisma.comment.deleteMany({
+          where: { postId },
+        });
+        const delPost = prisma.post.delete({
+          where: { id: postId },
+        });
+        const transaction = await prisma.$transaction([delPostRelComms, delPost]);
+        // if (targetPost.published) {
+        //   pubsub.publish('post', { post: { mutation: 'DELETED', data: targetPost } });
+        // }
+        return transaction[1];
+      } catch (error) {
+        throw new Error(`Couldn't complete deletion of post and/or related comments`);
+      }
+    },
     // updatePost: (
     //   _parent: undefined,
     //   {
