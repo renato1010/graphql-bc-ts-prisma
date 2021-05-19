@@ -29,30 +29,20 @@ const Query = {
       });
       return user ? [user] : [];
     },
-    // me: (): User => {
-    //   return { id: 'adsfasdfa', name: 'Renato Perez', email: 'renato@test.com', age: null };
-    // },
-    // post: (): Post => ({
-    //   id: 'abdcd',
-    //   title: 'play with GraphQL and Typescript',
-    //   body: 'a full text for post',
-    //   published: true,
-    //   author: '2',
-    // }),
-    // comments: (
-    //   _: undefined,
-    //   { query }: { query: string | undefined },
-    //   { data: { comments } }: { data: { comments: Comment[] } },
-    // ): Comment[] => {
-    //   if (!query) {
-    //     return comments;
-    //   }
-    //   const matchById = comments.filter((comm) => comm.id.toLowerCase() === query.toLowerCase());
-    //   const matchByText = comments.filter((comm) =>
-    //     comm.text.toLowerCase().includes(query.toLowerCase()),
-    //   );
-    //   return [...matchById, ...matchByText];
-    // },
+    comments: async (
+      _: undefined,
+      { query }: { query: string | undefined },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Comment[]> => {
+      if (!query) {
+        return await prisma.comment.findMany();
+      }
+      const matchById = await prisma.comment.findUnique({ where: { id: query } });
+      const matchByText = await prisma.comment.findMany({
+        where: { text: { contains: query, mode: 'insensitive' } },
+      });
+      return matchById ? [matchById, ...matchByText] : [...matchByText];
+    },
   },
 };
 

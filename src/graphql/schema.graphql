@@ -1,9 +1,7 @@
 type Query {
   posts(query: String): [Post!]!
   users(query: String): [User!]!
-  # comments(query: String): [Comment!]!
-  # me: User!
-  # post: Post!
+  comments(query: String): [Comment!]!
 }
 type Mutation {
   createUser(input: CreateUserInput): User!
@@ -11,10 +9,10 @@ type Mutation {
   updateUser(id: ID!, input: UpdateUserInput): User!
   createPost(input: CreatePostInput): Post!
   deletePost(postId: ID!): Post!
-  # updatePost(postId: ID!, input: UpdatePostInput): Post!
-  # createComment(input: CreateCommentInput): Comment!
-  # updateComment(commentId: ID!, input: UpdateCommentInput): Comment!
-  # deleteComment(commentId: ID!): Comment!
+  updatePost(postId: ID!, input: UpdatePostInput): Post!
+  createComment(input: CreateCommentInput): Comment!
+  updateComment(input: UpdateCommentInput): Comment!
+  deleteComment(commentId: ID!): Comment!
 }
 # type Subscription {
 #   comment: CommentSubscriptionPayload!
@@ -36,24 +34,26 @@ input CreatePostInput {
   publish: Boolean!
   authorId: ID!
 }
-# input UpdatePostInput {
-#   title: String
-#   body: String
-# }
-# input CreateCommentInput {
-#   content: String!
-#   author: ID!
-#   post: ID!
-# }
-# input UpdateCommentInput {
-#   text: String
-# }
+input UpdatePostInput {
+  title: String
+  body: String
+  published: Boolean
+}
+input CreateCommentInput {
+  content: String!
+  userId: ID!
+  postId: ID!
+}
+input UpdateCommentInput {
+  commentId: String
+  text: String
+}
 type User {
   id: ID!
   name: String!
   email: String!
   posts: [Post]!
-  # comments: [Comment!]!
+  comments: [Comment!]!
 }
 type Post {
   id: ID!
@@ -61,7 +61,7 @@ type Post {
   body: String!
   published: Boolean!
   author: User!
-  # comments: [Comment!]!
+  comments: [Comment!]!
 }
 type Comment {
   id: ID!

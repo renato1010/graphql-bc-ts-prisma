@@ -16,8 +16,8 @@ export interface Post {
 export interface Comment {
   id: string;
   text: string;
-  author: string;
-  post: string;
+  userId: string;
+  postId: string;
 }
 export type MutationOperation = 'CREATED' | 'UPDATED' | 'DELETED';
 export interface QueryType {

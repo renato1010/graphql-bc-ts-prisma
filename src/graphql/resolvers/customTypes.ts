@@ -11,11 +11,13 @@ const Custom = {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       return user ? user : null;
     },
-    // comments: (
-    //   { id }: Post,
-    //   _args: undefined,
-    //   { data: { comments } }: { data: { comments: Comment[] } },
-    // ): Comment[] => comments.filter((comm) => comm.post === id),
+    comments: async (
+      { id }: Post,
+      _args: undefined,
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Comment[]> => {
+      return await prisma.comment.findMany({ where: { postId: id } });
+    },
   },
   User: {
     posts: async (
@@ -26,28 +28,38 @@ const Custom = {
       const posts = await prisma.post.findMany({ where: { userId: id } });
       return posts;
     },
-    // comments: (
-    //   { id }: User,
-    //   _args: undefined,
-    //   { data: { comments } }: { data: { comments: Comment[] } },
-    // ): Comment[] => comments.filter((comm) => comm.author === id),
+    comments: async (
+      { id }: User,
+      _args: undefined,
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Comment[]> => {
+      return await prisma.comment.findMany({ where: { userId: id } });
+    },
   },
-  // Comment: {
-  //   author: (
-  //     { author }: Comment,
-  //     _args: undefined,
-  //     { data: { users } }: { data: { users: User[] } },
-  //   ): User => {
-  //     return users.find((user) => user.id === author) as User;
-  //   },
-  //   post: (
-  //     { post }: Comment,
-  //     _args: undefined,
-  //     { data: { posts } }: { data: { posts: Post[] } },
-  //   ): Post => {
-  //     return posts.find((p) => p.id === post) as Post;
-  //   },
-  // },
+  Comment: {
+    author: async (
+      { userId }: Comment,
+      _args: undefined,
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<User> => {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new Error(`Couldn't find user with Id=${userId}`);
+      }
+      return user;
+    },
+    post: async (
+      { postId }: Comment,
+      _args: undefined,
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<Post> => {
+      const post = await prisma.post.findUnique({ where: { id: postId } });
+      if (!post) {
+        throw new Error(`Couldn't find post with Id=${postId}`);
+      }
+      return post;
+    },
+  },
 };
 
 export { Custom };
