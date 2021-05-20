@@ -33,29 +33,23 @@ const Mutation = {
       { prisma }: { prisma: PrismaFull },
     ): Promise<User> => {
       try {
-        const deleteUser = prisma.user.delete({
+        const userPosts = await prisma.user.findUnique({ where: { id: userId } }).posts();
+        const userPostsIds = userPosts.map((post) => post.id);
+        const commentsFromPosts = userPostsIds.map((postId) =>
+          prisma.comment.deleteMany({ where: { postId } }),
+        );
+        // remove comments from user posts
+        const deleteCommentsFromPosts = await Promise.all(commentsFromPosts);
+        const deleteUserComments = await prisma.comment.deleteMany({ where: { userId } });
+        const deleteAllUserPosts = await prisma.post.deleteMany({ where: { userId } });
+        const deleteUser = await prisma.user.delete({
           where: {
             id: userId,
           },
         });
-        const deleteRelatedPosts = prisma.post.deleteMany({
-          where: {
-            userId,
-          },
-        });
-        const deleteRelComms = prisma.comment.deleteMany({
-          where: {
-            userId,
-          },
-        });
-        const transaction = await prisma.$transaction([
-          deleteRelComms,
-          deleteRelatedPosts,
-          deleteUser,
-        ]);
-        return transaction[2];
+        return deleteUser;
       } catch (error) {
-        throw new Error(`Couldn't delete user with Id:${userId}`);
+        throw new Error(`Couldn't delete user with Id:${userId}; ${error?.message ?? ''}`);
       }
     },
     updateUser: async (
