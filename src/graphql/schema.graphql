@@ -16,7 +16,7 @@ type Mutation {
 }
 type Subscription {
   comment: CommentSubscriptionPayload!
-  # post: PostSubscriptionPaylod!
+  post: PostSubscriptionPaylod!
 }
 input CreateUserInput {
   name: String!
@@ -74,10 +74,10 @@ enum MutationType {
   UPDATED
   DELETED
 }
-# type PostSubscriptionPaylod {
-#   mutation: MutationType!
-#   data: Post!
-# }
+type PostSubscriptionPaylod {
+  mutation: MutationType!
+  data: Post!
+}
 type CommentSubscriptionPayload {
   mutation: MutationType!
   data: Comment!

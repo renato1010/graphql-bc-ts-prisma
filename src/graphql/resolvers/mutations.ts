@@ -78,27 +78,24 @@ const Mutation = {
       {
         input: { title, body, publish: published, authorId },
       }: { input: { title: string; body: string; publish: boolean; authorId: string } },
-      { prisma }: { prisma: PrismaFull },
+      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
     ): Promise<Post> => {
-      const authorExist = await prisma.user.findUnique({ where: { id: authorId } });
-      if (!authorExist) {
-        throw new Error(`Couldn't found an author with ID=${authorId}`);
+      try {
+        const newPost = await prisma.post.create({
+          data: { body, title, published, userId: authorId },
+        });
+        pubsub.publish('post', { post: { mutation: 'CREATED', data: newPost } });
+        return newPost;
+      } catch (error) {
+        throw new Error(`Couldn't create new Post: ${error?.message ?? ''}`);
       }
-      const newPost = await prisma.post.create({
-        data: { body, title, published, userId: authorId },
-      });
-      // if (published) {
-      //   pubsub.publish('post', { post: { mutation: 'Created', data: newPost } });
-      // }
-      return newPost;
     },
     deletePost: async (
       _parent: undefined,
       { postId }: { postId: string },
-      { prisma }: { prisma: PrismaFull },
+      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
     ): Promise<Post> => {
       try {
-        // delete comments related with post
         const delPostRelComms = prisma.comment.deleteMany({
           where: { postId },
         });
@@ -106,9 +103,7 @@ const Mutation = {
           where: { id: postId },
         });
         const transaction = await prisma.$transaction([delPostRelComms, delPost]);
-        // if (targetPost.published) {
-        //   pubsub.publish('post', { post: { mutation: 'DELETED', data: targetPost } });
-        // }
+        pubsub.publish('post', { post: { mutation: 'DELETED', data: transaction[1] } });
         return transaction[1];
       } catch (error) {
         throw new Error(`Couldn't complete deletion of post with Id=${postId}`);
@@ -117,11 +112,11 @@ const Mutation = {
     updatePost: async (
       _parent: undefined,
       { postId, input }: { postId: string; input: Partial<Omit<Post, 'id'>> },
-      { prisma }: { prisma: PrismaFull },
+      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
     ): Promise<Post> => {
       try {
         const updatedPost = await prisma.post.update({ where: { id: postId }, data: { ...input } });
-        // pubsub.publish('post', { post: { mutation: 'UPDATED', data: updatedPost } });
+        pubsub.publish('post', { post: { mutation: 'UPDATED', data: updatedPost } });
         return updatedPost;
       } catch (error) {
         throw new Error(`Couldn't find post with Id=${postId}`);
