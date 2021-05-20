@@ -4,6 +4,6 @@ import { Mutation } from './mutations';
 import { Subscription } from './subscriptions';
 import { Custom } from './customTypes';
 
-const resolvers: IResolvers = { ...Query, ...Mutation, ...Custom };
+const resolvers: IResolvers = { ...Query, ...Mutation, ...Custom, ...Subscription };
 
 export { resolvers };

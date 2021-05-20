@@ -1,5 +1,4 @@
 import { User, Post, Comment } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 import { PubSub } from 'graphql-subscriptions';
 import { PrismaFull } from 'src/types';
 
@@ -133,23 +132,22 @@ const Mutation = {
       {
         input: { content: text, userId, postId },
       }: { input: { content: string; userId: string; postId: string } },
-      { prisma }: { prisma: PrismaFull },
+      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
     ): Promise<Comment> => {
-      const newComment = await prisma.comment.create({
-        data: { text: text, userId, postId },
-      });
-      const isAuthor = await prisma.user.findUnique({ where: { id: userId } });
-      const isPost = await prisma.post.findUnique({ where: { id: postId } });
-      if (!isAuthor || !isPost) {
-        throw new Error('There are neither author nor post');
+      try {
+        const newComment = await prisma.comment.create({
+          data: { text: text, userId, postId },
+        });
+        pubsub.publish('comment', { comment: { mutation: 'CREATED', data: newComment } });
+        return newComment;
+      } catch (error) {
+        throw new Error(`${error?.message ?? `Couldn't create comment for postId=${postId}`}`);
       }
-      // pubsub.publish('comment', { comment: { mutation: 'CREATED', data: newComment } });
-      return newComment;
     },
     updateComment: async (
       _parent: undefined,
       { input }: { input: Pick<Comment, 'text'> & { commentId: string } },
-      { prisma }: { prisma: PrismaFull },
+      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
     ): Promise<Comment> => {
       const { commentId, text } = input;
       try {
@@ -157,7 +155,7 @@ const Mutation = {
           where: { id: commentId },
           data: { text },
         });
-        // pubsub.publish('comment', { comment: { mutation: 'UPDATED', data: updatedComment } });
+        pubsub.publish('comment', { comment: { mutation: 'UPDATED', data: updatedComment } });
         return updatedComment;
       } catch (error) {
         throw new Error(`Couldn't find comment with Id=${commentId}`);
@@ -166,11 +164,11 @@ const Mutation = {
     deleteComment: async (
       _parent: undefined,
       { commentId }: { commentId: string },
-      { prisma }: { prisma: PrismaFull },
+      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
     ): Promise<Comment> => {
       try {
         const targetComment = await prisma.comment.delete({ where: { id: commentId } });
-        // pubsub.publish('comment', { comment: { mutation: 'DELETED', data: commentToRemove } });
+        pubsub.publish('comment', { comment: { mutation: 'DELETED', data: targetComment } });
         return targetComment;
       } catch (error) {
         throw new Error(`Couldn't delete comment with Id=${commentId}`);
