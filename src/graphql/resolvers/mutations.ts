@@ -40,8 +40,11 @@ const Mutation = {
         );
         // remove comments from user posts
         const deleteCommentsFromPosts = await Promise.all(commentsFromPosts);
+        // remove user own comments
         const deleteUserComments = await prisma.comment.deleteMany({ where: { userId } });
+        // remove all post from user
         const deleteAllUserPosts = await prisma.post.deleteMany({ where: { userId } });
+        // finaly remove user
         const deleteUser = await prisma.user.delete({
           where: {
             id: userId,

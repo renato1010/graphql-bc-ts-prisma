@@ -99,3 +99,42 @@ Is an imperative database schema migration tool, enable you to:
 Generates a history of `.sql` migation files in the `prisma` folder at the root of the project.
 
 ![prisma migrations folder](screenshots/prisma_migration_files_2021-05-19_17-19.png)
+
+## Notes
+
+Comments on topics that may be useful to others
+
+1. Prisma Schema does not yet have [Cascading deletes](https://www.prisma.io/docs/guides/database/advanced-database-tasks/cascading-deletes). There's this open(may,2021) [issue](https://github.com/prisma/prisma/issues/2810)
+
+So for example, delete a user that have many posts and each post may have many comments was done like this:
+
+```typescript
+    deleteUser: async (
+      _: undefined,
+      { userId }: { userId: string },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<User> => {
+      try {
+        const userPosts = await prisma.user.findUnique({ where: { id: userId } }).posts();
+        const userPostsIds = userPosts.map((post) => post.id);
+        const commentsFromPosts = userPostsIds.map((postId) =>
+          prisma.comment.deleteMany({ where: { postId } }),
+        );
+        // remove comments from user posts
+        const deleteCommentsFromPosts = await Promise.all(commentsFromPosts);
+        // remove user own comments
+        const deleteUserComments = await prisma.comment.deleteMany({ where: { userId } });
+        // remove all post from user
+        const deleteAllUserPosts = await prisma.post.deleteMany({ where: { userId } });
+        // finaly remove user
+        const deleteUser = await prisma.user.delete({
+          where: {
+            id: userId,
+          },
+        });
+        return deleteUser;
+      } catch (error) {
+        throw new Error(`Couldn't delete user with Id:${userId}; ${error?.message ?? ''}`);
+      }
+    },
+```
