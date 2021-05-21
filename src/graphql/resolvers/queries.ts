@@ -11,8 +11,24 @@ const Query = {
       if (!query) {
         return await prisma.post.findMany();
       }
-      const post = await prisma.post.findUnique({ where: { id: query } });
-      return post ? [post] : [];
+      const postById = await prisma.post.findUnique({ where: { id: query } });
+      const postsByTextSearch = await prisma.post.findMany({
+        where: {
+          OR: [
+            {
+              title: {
+                contains: query,
+              },
+            },
+            {
+              body: {
+                contains: query,
+              },
+            },
+          ],
+        },
+      });
+      return postById ? [postById, ...postsByTextSearch] : [...postsByTextSearch];
     },
     users: async (
       _parent: undefined,
