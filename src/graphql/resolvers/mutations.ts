@@ -1,4 +1,4 @@
-import { hash } from 'bcryptjs';
+import { hash, compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { User, Post, Comment, AuthPayload, PrismaFull } from '@types';
 import { PubSub } from 'graphql-subscriptions';
@@ -181,11 +181,32 @@ const Mutation = {
       }
       const pass = await hash(password, 10);
       const user = await prisma.user.create({ data: { email, name, password: pass } });
-      let token;
+      let token = null;
       if (TOKEN_SECRET) {
         token = sign({ userId: user.id }, TOKEN_SECRET);
       } else {
         throw new Error("Couldn't load env vars");
+      }
+      return { token, user };
+    },
+    login: async (
+      _parent: undefined,
+      { input: { email, password } }: { input: { email: string; password: string } },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<AuthPayload> => {
+      const user = await prisma.user.findUnique({ where: { email: email } });
+      if (!user) {
+        throw new Error('No such user found');
+      }
+      const isValid = await compare(password, user.password);
+      if (!isValid) {
+        throw new Error('Invalid password');
+      }
+      let token = null;
+      if (TOKEN_SECRET) {
+        token = sign({ userId: user.id }, TOKEN_SECRET);
+      } else {
+        throw new Error('Error loading env vars');
       }
       return { token, user };
     },
