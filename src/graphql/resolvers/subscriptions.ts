@@ -1,5 +1,6 @@
 import { PubSub } from 'graphql-subscriptions';
-import { Comment, Post, MutationOperation, PrismaFull } from '@types';
+import { MutationOperation, PrismaFull } from '@types';
+import { Comment, Post } from '@prisma/client';
 
 const Subscription = {
   Subscription: {

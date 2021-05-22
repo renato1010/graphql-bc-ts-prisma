@@ -1,4 +1,5 @@
-import { User, Post, Comment, PrismaFull } from '@types';
+import { PrismaFull } from '@types';
+import { User, Post, Comment } from '@prisma/client';
 
 const Query = {
   Query: {

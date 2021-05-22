@@ -1,6 +1,7 @@
 import { hash, compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
-import { User, Post, Comment, AuthPayload, PrismaFull } from '@types';
+import { AuthPayload, PrismaFull } from '@types';
+import { User, Post, Comment } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 import { schema, TOKEN_SECRET } from '../../utilities';
 
