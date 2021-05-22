@@ -1,5 +1,4 @@
-import { User, Post, Comment } from '../../types';
-import { PrismaFull } from 'src/types';
+import { User, Post, Comment, PrismaFull } from '@types';
 
 const Query = {
   Query: {

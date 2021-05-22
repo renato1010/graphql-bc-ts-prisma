@@ -1,12 +1,14 @@
-import { User, Post, Comment } from '../../types';
+import { hash } from 'bcryptjs';
+import { sign } from 'jsonwebtoken';
+import { User, Post, Comment, AuthPayload, PrismaFull } from '@types';
 import { PubSub } from 'graphql-subscriptions';
-import { PrismaFull } from 'src/types';
+import { schema, TOKEN_SECRET } from '@utilities';
 
 const Mutation = {
   Mutation: {
     createUser: async (
       _: undefined,
-      { input }: { input: { name: string; email: string; age?: number } },
+      { input }: { input: { name: string; email: string; password: string } },
       { prisma }: { prisma: PrismaFull },
     ): Promise<User> => {
       const isEmailTaken = await prisma.user.findUnique({
@@ -165,6 +167,26 @@ const Mutation = {
       } catch (error) {
         throw new Error(`Couldn't delete comment with Id=${commentId}`);
       }
+    },
+    signup: async (
+      _parent: undefined,
+      { email, password, name }: { email: string; password: string; name: string },
+      { prisma }: { prisma: PrismaFull },
+    ): Promise<AuthPayload> => {
+      const isValidPassword = schema.validate(password);
+      if (isValidPassword !== true) {
+        throw new Error('Not valid password: min 8 chars, 1 uppercase, 1 digit and no spaces ');
+      }
+      const pass = await hash(password, 10);
+      const user = await prisma.user.create({ data: { email, name, password: pass } });
+      let token;
+      if (TOKEN_SECRET) {
+        token = sign({ userId: user.id }, TOKEN_SECRET);
+      } else {
+        throw new Error("Couldn't load env vars");
+      }
+      console.log({ token, user });
+      return { token, user };
     },
   },
 };

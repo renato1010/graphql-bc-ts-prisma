@@ -1,10 +1,10 @@
+import { PubSub } from 'graphql-yoga';
 import { Prisma, PrismaClient } from '@prisma/client';
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  age?: number | null;
 }
 export interface Post {
   id: string;
@@ -32,3 +32,14 @@ export type PrismaFull = PrismaClient<
   never,
   Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
 >;
+
+export interface ServerContext {
+  prisma: PrismaFull;
+  pubsub: PubSub;
+  userId: string | null;
+}
+
+export interface AuthPayload {
+  token?: string;
+  user?: User;
+}
