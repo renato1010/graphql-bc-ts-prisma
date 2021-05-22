@@ -179,8 +179,8 @@ const Mutation = {
       if (isValidPassword !== true) {
         throw new Error('Not valid password: min 8 chars, 1 uppercase, 1 digit and no spaces ');
       }
-      const pass = await hash(password, 10);
-      const user = await prisma.user.create({ data: { email, name, password: pass } });
+      const hashedPass = await hash(password, 10);
+      const user = await prisma.user.create({ data: { email, name, password: hashedPass } });
       let token = null;
       if (TOKEN_SECRET) {
         token = sign({ userId: user.id }, TOKEN_SECRET);
