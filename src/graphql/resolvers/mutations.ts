@@ -2,7 +2,7 @@ import { hash } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import { User, Post, Comment, AuthPayload, PrismaFull } from '@types';
 import { PubSub } from 'graphql-subscriptions';
-import { schema, TOKEN_SECRET } from '@utilities';
+import { schema, TOKEN_SECRET } from '../../utilities';
 
 const Mutation = {
   Mutation: {
@@ -170,7 +170,9 @@ const Mutation = {
     },
     signup: async (
       _parent: undefined,
-      { email, password, name }: { email: string; password: string; name: string },
+      {
+        input: { email, password, name },
+      }: { input: { email: string; password: string; name: string } },
       { prisma }: { prisma: PrismaFull },
     ): Promise<AuthPayload> => {
       const isValidPassword = schema.validate(password);
@@ -185,7 +187,6 @@ const Mutation = {
       } else {
         throw new Error("Couldn't load env vars");
       }
-      console.log({ token, user });
       return { token, user };
     },
   },
