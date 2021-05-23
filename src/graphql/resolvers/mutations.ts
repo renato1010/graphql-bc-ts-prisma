@@ -1,6 +1,6 @@
 import { hash, compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
-import { AuthPayload, PrismaFull } from '@types';
+import { AuthPayload, PrismaFull, ServerContext } from '@types';
 import { User, Post, Comment } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 import { schema, TOKEN_SECRET } from '../../utilities';
@@ -31,10 +31,13 @@ const Mutation = {
       return newUser;
     },
     deleteUser: async (
-      _: undefined,
-      { userId }: { userId: string },
-      { prisma }: { prisma: PrismaFull },
+      _parent: undefined,
+      _args: undefined,
+      { prisma, userId }: ServerContext,
     ): Promise<User> => {
+      if (!userId) {
+        throw new Error('Not authorized to delete user');
+      }
       try {
         const userPosts = await prisma.user.findUnique({ where: { id: userId } }).posts();
         const userPostsIds = userPosts.map((post) => post.id);
@@ -44,9 +47,9 @@ const Mutation = {
         // remove comments from user posts
         const deleteCommentsFromPosts = await Promise.all(commentsFromPosts);
         // remove user own comments
-        const deleteUserComments = await prisma.comment.deleteMany({ where: { userId } });
+        const deleteUserComments = await prisma.comment.deleteMany({ where: { id: userId } });
         // remove all post from user
-        const deleteAllUserPosts = await prisma.post.deleteMany({ where: { userId } });
+        const deleteAllUserPosts = await prisma.post.deleteMany({ where: { userId: userId } });
         // finaly remove user
         const deleteUser = await prisma.user.delete({
           where: {
@@ -60,17 +63,21 @@ const Mutation = {
     },
     updateUser: async (
       _parent: undefined,
-      { id, input }: { id: string; input: Partial<Omit<User, 'id'>> },
-      { prisma }: { prisma: PrismaFull },
+      { input }: { input: Partial<Omit<User, 'id'>> },
+      { prisma, userId }: ServerContext,
     ): Promise<User> => {
+      if (!userId) {
+        throw new Error('Not authorized to update user data');
+      }
       try {
+        // authorized user is able to modify only her own data
         const updateUser = await prisma.user.update({
-          where: { id },
+          where: { id: userId },
           data: { ...input },
         });
         return updateUser;
       } catch (error) {
-        throw new Error(`Couldn't find user with Id=${id}`);
+        throw new Error(`Couldn't find user with Id=${userId}`);
       }
     },
     createPost: async (
@@ -78,23 +85,39 @@ const Mutation = {
       {
         input: { title, body, publish: published, authorId },
       }: { input: { title: string; body: string; publish: boolean; authorId: string } },
-      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
+      { prisma, pubsub, userId }: ServerContext,
     ): Promise<Post> => {
+      // only authorized users can create posts
+      if (!userId) {
+        throw new Error('Not authorized to create posts');
+      }
       try {
+        // users can create posts only for themselves
         const newPost = await prisma.post.create({
-          data: { body, title, published, userId: authorId },
+          data: { body, title, published, userId },
         });
         pubsub.publish('post', { post: { mutation: 'CREATED', data: newPost } });
         return newPost;
       } catch (error) {
-        throw new Error(`Couldn't create new Post: ${error?.message ?? ''}`);
+        throw new Error(`Couldn't create new Post`);
       }
     },
     deletePost: async (
       _parent: undefined,
       { postId }: { postId: string },
-      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
+      { prisma, pubsub, userId }: ServerContext,
     ): Promise<Post> => {
+      if (!userId) {
+        throw new Error('Not authorized');
+      }
+      const targetPost = await prisma.post.findUnique({ where: { id: postId } });
+      if (!targetPost) {
+        throw new Error("Couldn't find post");
+      }
+      const isOwner = targetPost.userId === userId;
+      if (!isOwner) {
+        throw new Error('Not allowed to delete post');
+      }
       try {
         const delPostRelComms = prisma.comment.deleteMany({
           where: { postId },
@@ -112,8 +135,19 @@ const Mutation = {
     updatePost: async (
       _parent: undefined,
       { postId, input }: { postId: string; input: Partial<Omit<Post, 'id'>> },
-      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
+      { prisma, pubsub, userId }: ServerContext,
     ): Promise<Post> => {
+      if (!userId) {
+        throw new Error('Not authorized');
+      }
+      const targetPost = await prisma.post.findUnique({ where: { id: postId } });
+      if (!targetPost) {
+        throw new Error("Couldn't find post");
+      }
+      const isOwner = targetPost.userId === userId;
+      if (!isOwner) {
+        throw new Error('Not allowed to delete post');
+      }
       try {
         const updatedPost = await prisma.post.update({ where: { id: postId }, data: { ...input } });
         pubsub.publish('post', { post: { mutation: 'UPDATED', data: updatedPost } });
@@ -125,10 +159,13 @@ const Mutation = {
     createComment: async (
       _parent: undefined,
       {
-        input: { content: text, userId, postId },
+        input: { content: text, postId },
       }: { input: { content: string; userId: string; postId: string } },
-      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
+      { prisma, pubsub, userId }: ServerContext,
     ): Promise<Comment> => {
+      if (!userId) {
+        throw new Error('Not authorized');
+      }
       try {
         const newComment = await prisma.comment.create({
           data: { text: text, userId, postId },
@@ -142,9 +179,20 @@ const Mutation = {
     updateComment: async (
       _parent: undefined,
       { input }: { input: Pick<Comment, 'text'> & { commentId: string } },
-      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
+      { prisma, pubsub, userId }: ServerContext,
     ): Promise<Comment> => {
+      if (!userId) {
+        throw new Error('Not authorized');
+      }
       const { commentId, text } = input;
+      const targetComment = await prisma.comment.findUnique({ where: { id: commentId } });
+      if (!targetComment) {
+        throw new Error("Couldn't find comment");
+      }
+      const isOwner = targetComment.userId === userId;
+      if (!isOwner) {
+        throw new Error('Not allowed to update comment');
+      }
       try {
         const updatedComment = await prisma.comment.update({
           where: { id: commentId },
@@ -159,8 +207,19 @@ const Mutation = {
     deleteComment: async (
       _parent: undefined,
       { commentId }: { commentId: string },
-      { prisma, pubsub }: { prisma: PrismaFull; pubsub: PubSub },
+      { prisma, pubsub, userId }: ServerContext,
     ): Promise<Comment> => {
+      if (!userId) {
+        throw new Error('Not authorized');
+      }
+      const targetComment = await prisma.comment.findUnique({ where: { id: commentId } });
+      if (!targetComment) {
+        throw new Error("Couldn't find comment");
+      }
+      const isOwner = targetComment.userId === userId;
+      if (!isOwner) {
+        throw new Error('Not allowed to delete comment');
+      }
       try {
         const targetComment = await prisma.comment.delete({ where: { id: commentId } });
         pubsub.publish('comment', { comment: { mutation: 'DELETED', data: targetComment } });

@@ -8,7 +8,12 @@ function getTokenPayload(token: string): { [key: string]: any } {
   if (!TOKEN_SECRET) {
     return { userId: null };
   }
-  return verify(token, TOKEN_SECRET) as { [key: string]: any };
+  try {
+    // if can't verify send userId null
+    return verify(token, TOKEN_SECRET) as { [key: string]: any };
+  } catch (error) {
+    return { userId: null };
+  }
 }
 
 function getUserId(req: Request, authToken?: string): string | null {
