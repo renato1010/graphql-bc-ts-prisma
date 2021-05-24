@@ -1,8 +1,7 @@
 import { hash, compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
-import { AuthPayload, PrismaFull, ServerContext } from '@types';
+import { AuthPayload, PrismaFull, ServerContext } from 'types';
 import { User, Post, Comment } from '@prisma/client';
-import { PubSub } from 'graphql-subscriptions';
 import { schema, TOKEN_SECRET } from '../../utilities';
 
 const Mutation = {

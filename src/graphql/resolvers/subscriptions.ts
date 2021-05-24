@@ -1,6 +1,6 @@
-import { PubSub } from 'graphql-subscriptions';
-import { MutationOperation, PrismaFull } from '@types';
 import { Comment, Post } from '@prisma/client';
+import { PubSub } from 'graphql-subscriptions';
+import { MutationOperation, PrismaFull, ServerContext } from 'types';
 
 const Subscription = {
   Subscription: {
@@ -8,7 +8,7 @@ const Subscription = {
       subscribe(
         _parent: undefined,
         _args: undefined,
-        { pubsub, prisma }: { pubsub: PubSub; prisma: PrismaFull },
+        { pubsub }: ServerContext,
       ): AsyncIterator<unknown, Comment & { mutation: MutationOperation }, undefined> {
         return pubsub.asyncIterator('comment');
       },
@@ -17,7 +17,7 @@ const Subscription = {
       subscribe: (
         _parent: undefined,
         _args: undefined,
-        { pubsub, prisma }: { pubsub: PubSub; prisma: PrismaFull },
+        { pubsub }: ServerContext,
       ): AsyncIterator<unknown, Post & { mutation: MutationOperation }, undefined> => {
         return pubsub.asyncIterator('post');
       },

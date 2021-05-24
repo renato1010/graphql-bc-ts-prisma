@@ -1,5 +1,5 @@
-import { PrismaFull } from '@types';
 import { User, Post, Comment } from '@prisma/client';
+import { PrismaFull } from 'types';
 
 const Query = {
   Query: {
@@ -38,12 +38,10 @@ const Query = {
       if (!query) {
         return await prisma.user.findMany();
       }
-      const user = await prisma.user.findUnique({
-        where: {
-          id: query,
-        },
+      const users = await prisma.user.findMany({
+        where: { name: { contains: query, mode: 'insensitive' } },
       });
-      return user ? [user] : [];
+      return users.length ? users : [];
     },
     comments: async (
       _: undefined,

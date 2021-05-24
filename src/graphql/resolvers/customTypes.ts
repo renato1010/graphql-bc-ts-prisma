@@ -1,5 +1,5 @@
 import { User, Post, Comment } from '@prisma/client';
-import { PrismaFull } from '@types';
+import { PrismaFull, ServerContext } from 'types';
 
 const Custom = {
   Post: {
@@ -23,10 +23,13 @@ const Custom = {
     posts: async (
       { id }: User,
       _args: undefined,
-      { prisma }: { prisma: PrismaFull },
+      { prisma, userId }: ServerContext,
     ): Promise<Post[]> => {
-      const posts = await prisma.post.findMany({ where: { userId: id } });
-      return posts;
+      if (userId) {
+        const posts = await prisma.post.findMany({ where: { userId: id, published: true } });
+        return posts;
+      }
+      return [];
     },
     comments: async (
       { id }: User,
@@ -34,6 +37,17 @@ const Custom = {
       { prisma }: { prisma: PrismaFull },
     ): Promise<Comment[]> => {
       return await prisma.comment.findMany({ where: { userId: id } });
+    },
+    email: (
+      { id, email }: User,
+      _args: undefined,
+      { prisma, userId }: ServerContext,
+    ): string | null => {
+      if (userId && userId === id) {
+        return email;
+      } else {
+        return null;
+      }
     },
   },
   Comment: {

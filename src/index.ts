@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { GraphQLServer, PubSub } from 'graphql-yoga';
 import { ContextParameters } from 'graphql-yoga/dist/types';
 import { resolvers } from './graphql/resolvers';
-import { ServerContext } from '@types';
+import { ServerContext } from 'types';
 import { getUserId } from './utilities';
 
 const pubsub = new PubSub();
