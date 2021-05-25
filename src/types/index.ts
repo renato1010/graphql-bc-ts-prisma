@@ -42,6 +42,6 @@ export interface ServerContext {
 }
 
 export interface AuthPayload {
-  token?: string;
+  token?: string | null;
   user?: User;
 }
