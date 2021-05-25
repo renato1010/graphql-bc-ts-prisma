@@ -1,7 +1,8 @@
 ## Description
 
-This repo is my version/follow-up for the udemy cours [The Modern GraphQL Bootcamp (with Node.js and Apollo)](https://www.udemy.com/course/graphql-bootcamp/)  
-with some variations that are my own choices.
+This repo is my version/follow-up for the udemy course [The Modern GraphQL Bootcamp (with Node.js and Apollo)](https://www.udemy.com/course/graphql-bootcamp/)  
+*clarification: uses Apollo Client(React); on Backend uses [GraphQL-Yoga](https://github.com/dotansimha/graphql-yoga) and as ORM [Prisma V2](https://www.prisma.io/docs/)
+I made some variations that are my own choices. And my main interest was in the backend part.
 
 ## Differences
 
@@ -13,8 +14,8 @@ Here is the list of my preferences and deviations from the original course
 
 ## Challenges encountered
 
-Prisma V2 is a beast! Since the course does not cover Prisma v2 I had to learn it from scratch, but it is definitely worth it.  
-It is an amazing tool.
+Prisma V2 is a beast! Since the course does not cover Prisma v2 I had to learn it from scratch, but it is definitely worth it. 
+It's an amazing tool.
 
 Consists mainly of three components
 
