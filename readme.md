@@ -1,7 +1,7 @@
 ## Description
 
 This repo is my version/follow-up for the udemy course [The Modern GraphQL Bootcamp (with Node.js and Apollo)](https://www.udemy.com/course/graphql-bootcamp/)  
-*clarification: uses Apollo Client(React); on Backend uses [GraphQL-Yoga](https://github.com/dotansimha/graphql-yoga) and as ORM [Prisma V2](https://www.prisma.io/docs/)
+\*clarification: uses Apollo Client(React); on Backend uses [GraphQL-Yoga](https://github.com/dotansimha/graphql-yoga) and as ORM [Prisma V2](https://www.prisma.io/docs/)
 I made some variations that are my own choices. And my main interest was in the backend part.
 
 ## Differences
@@ -14,7 +14,7 @@ Here is the list of my preferences and deviations from the original course
 
 ## Challenges encountered
 
-Prisma V2 is a beast! Since the course does not cover Prisma v2 I had to learn it from scratch, but it is definitely worth it. 
+Prisma V2 is a beast! Since the course does not cover Prisma v2 I had to learn it from scratch, but it is definitely worth it.
 It's an amazing tool.
 
 Consists mainly of three components
@@ -100,6 +100,13 @@ Is an imperative database schema migration tool, enable you to:
 Generates a history of `.sql` migation files in the `prisma` folder at the root of the project.
 
 ![prisma migrations folder](screenshots/prisma_migration_files_2021-05-19_17-19.png)
+
+## Client
+
+The client side of the application is not of particular importance in this project, but it is necessary to validate the interaction between the client and the server. So to demonstrate a call to the server from the client, an extremely simple interaction was created with vanilla JavaScript, check: `client/src/index.ts`  
+To run Typescript in client the easiest way is [parcel bundler](https://parceljs.org/)
+
+![backend call from client](screenshots/fetching_users_to_client_2021-05-25_18-05.png)
 
 ## Notes
 
